@@ -19,6 +19,7 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.memcached.MemcachedCache",
         "LOCATION": "127.0.0.1:11311",
         "KEY_PREFIX": "jimmypage.tests.settings",
+        "TIMEOUT": 24 * 60 * 60,
     },
 }
 

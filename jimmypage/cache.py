@@ -17,7 +17,6 @@ from django.utils.encoding import iri_to_uri
 
 __all__ = ('cache_page', 'clear_cache')
 
-CACHE_SECONDS = getattr(settings, 'JIMMY_PAGE_CACHE_SECONDS', 0)
 DISABLED = getattr(settings, 'JIMMY_PAGE_DISABLED', False)
 EXPIRATION_WHITELIST = set(getattr(settings,
     'JIMMY_PAGE_EXPIRATION_WHITELIST',
@@ -66,15 +65,13 @@ class cache_page(object):
         if callable(arg):
             # we are called with a function as argument; e.g., as a bare
             # decorator.  __call__ should be the new decorated function.
-            self.time = CACHE_SECONDS
             self.call = self.decorate(arg)
+            self.time = None
 
         else:
             # we are called with an argument.  __call__ should return
             # a decorator for its argument.
-            if arg is None:
-                self.time = CACHE_SECONDS
-            else:
+            if arg is not None:
                 self.time = arg
             self.call = self.decorate
 
@@ -104,7 +101,10 @@ class cache_page(object):
                 debug("storing!")
                 content = response.content
                 content_type = dict(response.items()).get("Content-Type")
-                cache.set(key, (content, content_type), self.time)
+                if self.time is not None:
+                    cache.set(key, (content, content_type), self.time)
+                else:
+                    cache.set(key, (content, content_type))
             else:
                 debug("Not storable.")
             response["ETag"] = key
