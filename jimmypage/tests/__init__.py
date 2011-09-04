@@ -88,6 +88,12 @@ class JimmyPageTests(TestCase):
         time.sleep(6)
         self.assertTrue(self.get_from_cache(request) is None)
 
+    def test_get_params(self):
+        url = "/content-types/text/html/?foo=bar"
+        request = self.factory.get(url)
+        response = self.client.get(url)
+        self.assertTrue(self.get_from_cache(request))
+
 class CacheabilityTest(TestCase):
     urls = 'jimmypage.tests.urls'
 
