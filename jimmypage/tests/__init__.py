@@ -20,9 +20,6 @@ class JimmyPageTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
 
-    def tearDown(self):
-        cache.clear()
-
     def get_from_cache(self, request):
         return cache.get(get_cache_key(request))
 
