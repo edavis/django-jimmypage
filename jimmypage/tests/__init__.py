@@ -1,3 +1,5 @@
+import time
+
 from django.test import TestCase
 from django.test.client import RequestFactory
 
@@ -10,6 +12,7 @@ from django.core.cache import cache
 from django.conf import settings
 
 from jimmypage.cache import request_is_cacheable, response_is_cacheable, get_cache_key
+from jimmypage import cache_page
 
 class JimmyPageTests(TestCase):
     urls = 'jimmypage.tests.urls'
@@ -69,6 +72,24 @@ class JimmyPageTests(TestCase):
         response = self.client.get("/content-types/text/plain/")
         headers = dict(response.items())
         self.assertEqual(headers["ETag"], get_cache_key(request))
+
+    def test_timeout_argument_works(self):
+        """Passing a number to cache_page caches it for that many seconds.
+
+        It expires after that.
+        """
+        @cache_page(5)
+        def foo(request):
+            return HttpResponse("foo")
+
+        request = self.factory.get("/")
+        response = foo(request)
+
+        time.sleep(1)
+        self.assertTrue(self.get_from_cache(request) is not None)
+
+        time.sleep(6)
+        self.assertTrue(self.get_from_cache(request) is None)
 
 class CacheabilityTest(TestCase):
     urls = 'jimmypage.tests.urls'
