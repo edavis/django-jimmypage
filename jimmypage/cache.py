@@ -17,7 +17,6 @@ from django.utils.encoding import iri_to_uri
 
 __all__ = ('cache_page', 'clear_cache')
 
-CACHE_PREFIX = getattr(settings, 'JIMMY_PAGE_CACHE_PREFIX', 'jp')
 CACHE_SECONDS = getattr(settings, 'JIMMY_PAGE_CACHE_SECONDS', 0)
 DISABLED = getattr(settings, 'JIMMY_PAGE_DISABLED', False)
 EXPIRATION_WHITELIST = set(getattr(settings,
@@ -30,7 +29,7 @@ EXPIRATION_WHITELIST = set(getattr(settings,
         "auth_user",
     ]))
 DEBUG_CACHE = getattr(settings, 'JIMMY_PAGE_DEBUG_CACHE', False)
-GLOBAL_GENERATION = CACHE_PREFIX + "_gen"
+GLOBAL_GENERATION = "generation"
 
 def clear_cache():
     debug("###### Incrementing Generation")
@@ -123,7 +122,6 @@ def get_cache_key(request):
         pass
 
     key = "/".join((
-        CACHE_PREFIX,
         str(cache.get(GLOBAL_GENERATION)),
         iri_to_uri(request.path),
         urllib.urlencode(request.GET),
