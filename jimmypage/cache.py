@@ -121,15 +121,26 @@ def get_cache_key(request):
     except AttributeError: # e.g. if auth is not installed
         pass
 
-    key = "/".join((
-        str(cache.get(GLOBAL_GENERATION)),
-        iri_to_uri(request.path),
-        urllib.urlencode(request.GET),
-        translation.get_language(),
-        user_id,
-    ))
-    debug(key)
-    return md5(key).hexdigest()
+    bits = {
+        "generation": str(cache.get(GLOBAL_GENERATION)),
+        "path": iri_to_uri(request.path),
+        "get_params": urllib.urlencode(request.GET),
+        "language": translation.get_language(),
+        "user_id": str(user_id),
+    }
+
+    key = ":".join([
+        bits["generation"],
+        bits["path"],
+        bits["get_params"],
+        bits["language"],
+        bits["user_id"]])
+
+    digest = md5(key).hexdigest()
+
+    logger.debug("generating cache key: %r (%s)" % (bits, digest))
+
+    return digest
 
 def request_is_cacheable(request):
     return (not DISABLED) and \
