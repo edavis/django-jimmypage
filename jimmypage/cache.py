@@ -89,7 +89,7 @@ class cache_page(object):
             key = get_cache_key(request)
             cached = cache.get(key)
             if cached is not None:
-                logger.debug("serving request from cache")
+                logger.debug("serving request from cache (%s)" % key)
                 (content, content_type) = cached
                 res = HttpResponse(content=content, content_type=content_type)
                 res["ETag"] = key
@@ -97,7 +97,7 @@ class cache_page(object):
 
             response = self.f(request, *args, **kwargs)
             if response_is_cacheable(request, response):
-                logger.debug("storing response in cache")
+                logger.debug("storing response in cache (%s)" % key)
                 content = response.content
                 content_type = dict(response.items()).get("Content-Type")
                 if self.time is not None:
