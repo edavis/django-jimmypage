@@ -1,4 +1,5 @@
 import urllib
+import logging
 try:
     import hashlib
     md5 = hashlib.md5
@@ -15,6 +16,8 @@ from django.http import HttpResponse
 from django.utils import translation
 from django.utils.encoding import iri_to_uri
 
+logger = logging.getLogger("jimmypage")
+
 __all__ = ('cache_page', 'clear_cache')
 
 DISABLED = getattr(settings, 'JIMMY_PAGE_DISABLED', False)
@@ -27,11 +30,10 @@ EXPIRATION_WHITELIST = set(getattr(settings,
         "auth_message",
         "auth_user",
     ]))
-DEBUG_CACHE = getattr(settings, 'JIMMY_PAGE_DEBUG_CACHE', False)
 GLOBAL_GENERATION = "generation"
 
 def clear_cache():
-    debug("###### Incrementing Generation")
+    logger.debug("incrementing generation")
     try:
         cache.incr(GLOBAL_GENERATION)
     except ValueError:
@@ -83,22 +85,19 @@ class cache_page(object):
         return self.decorated
 
     def decorated(self, request, *args, **kwargs):
-        debug("starting")
         if request_is_cacheable(request):
             key = get_cache_key(request)
-            debug("Retrievable.")
             cached = cache.get(key)
             if cached is not None:
-                debug("serving from cache")
+                logger.debug("serving request from cache")
                 (content, content_type) = cached
                 res = HttpResponse(content=content, content_type=content_type)
                 res["ETag"] = key
                 return res
 
-            debug("generating!")
             response = self.f(request, *args, **kwargs)
             if response_is_cacheable(request, response):
-                debug("storing!")
+                logger.debug("storing response in cache")
                 content = response.content
                 content_type = dict(response.items()).get("Content-Type")
                 if self.time is not None:
@@ -106,11 +105,12 @@ class cache_page(object):
                 else:
                     cache.set(key, (content, content_type))
             else:
-                debug("Not storable.")
+                logger.debug("response wasn't cacheable, not storing")
+
             response["ETag"] = key
             return response
-        debug("Not retrievable.")
-        debug("generating!")
+
+        logger.debug("request wasn't cacheable")
         return self.f(request, *args, **kwargs)
 
 def get_cache_key(request):
@@ -142,12 +142,5 @@ def response_is_cacheable(request, response):
         response.get('Pragma', None) != "no-cache" and \
         response.get('Vary', None) != "Cookie" and \
         not request.META.get("CSRF_COOKIE_USED", None)
-
-if DEBUG_CACHE:
-    def debug(*args):
-        print "JIMMYPAGE: " + " ".join([str(a) for a in args])
-else:
-    def debug(*args):
-        pass
 
 clear_cache()
