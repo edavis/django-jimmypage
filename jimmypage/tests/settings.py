@@ -12,6 +12,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "jimmypage",
+    "demo",
 ]
 
 CACHES = {
@@ -23,7 +24,9 @@ CACHES = {
     },
 }
 
-JIMMY_CACHE_CACHE_SECONDS = 60
+JIMMY_PAGE_WATCHLIST = [
+    "demo.Article",
+]
 
 ROOT_URLCONF = 'jimmypage.tests.urls'
 

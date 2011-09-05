@@ -94,6 +94,14 @@ class JimmyPageTests(TestCase):
         response = self.client.get(url)
         self.assertTrue(self.get_from_cache(request))
 
+    def test_watchlist(self):
+        current_generation = cache.get("generation")
+
+        from demo.models import Article
+        Article.objects.create(title="incr generation", body="incr generation")
+
+        self.assertEqual(cache.get("generation"), current_generation + 1)
+
 class CacheabilityTest(TestCase):
     urls = 'jimmypage.tests.urls'
 

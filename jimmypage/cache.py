@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.db.models.signals import post_save, pre_delete
+from django.db.models import get_model
 from django.http import HttpResponse
 from django.utils import translation
 from django.utils.encoding import iri_to_uri
@@ -21,15 +22,7 @@ logger = logging.getLogger("jimmypage")
 __all__ = ('cache_page', 'clear_cache')
 
 DISABLED = getattr(settings, 'JIMMY_PAGE_DISABLED', False)
-EXPIRATION_WHITELIST = set(getattr(settings,
-    'JIMMY_PAGE_EXPIRATION_WHITELIST',
-    [
-        "django_session",
-        "django_admin_log",
-        "registration_registrationprofile",
-        "auth_message",
-        "auth_user",
-    ]))
+WATCHLIST = set(get_model(*app_model.split('.')) for app_model in getattr(settings, 'JIMMY_PAGE_WATCHLIST', []))
 GLOBAL_GENERATION = "generation"
 
 def clear_cache():
@@ -40,9 +33,10 @@ def clear_cache():
         cache.set(GLOBAL_GENERATION, 1)
 
 def expire_cache(sender, instance, **kwargs):
-    table = instance._meta.db_table
-    if table not in EXPIRATION_WHITELIST:
+    if instance.__class__ in WATCHLIST:
+        logger.debug("%s has been updated, incrementing generation" % instance.__class__)
         clear_cache()
+
 post_save.connect(expire_cache)
 pre_delete.connect(expire_cache)
 
