@@ -13,13 +13,17 @@ from django.conf import settings
 
 from jimmypage.cache import request_is_cacheable, response_is_cacheable, get_cache_key
 from jimmypage import cache_page
+from jimmypage.tests.views import test_text_plain, test_text_html
 
-class JimmyPageTests(TestCase):
+from demo.models import Article, Page
+
+class JimmyPageTestsBase(TestCase):
     urls = 'jimmypage.tests.urls'
 
     def setUp(self):
         self.factory = RequestFactory()
 
+class JimmyPageCacheTests(JimmyPageTestsBase):
     def get_from_cache(self, request):
         return cache.get(get_cache_key(request))
 
@@ -29,13 +33,10 @@ class JimmyPageTests(TestCase):
         Otherwise, every response gets served as DEFAULT_CONTENT_TYPE which
         would mangle responses that aren't the default Content-Type.
         """
-        from jimmypage.tests.views import test_text_plain, test_text_html
-
         request = self.factory.get("/content-types/text/plain/")
         response = test_text_plain(request)
 
         (content, content_type) = self.get_from_cache(request)
-
         self.assertEqual(content, "text/plain", content)
         self.assertEqual(content_type, "text/plain", content_type)
 
@@ -52,7 +53,6 @@ class JimmyPageTests(TestCase):
         response = test_text_html(request)
 
         (content, content_type) = self.get_from_cache(request)
-
         self.assertEqual(content, "<b>text/html</b>", content)
         self.assertEqual(content_type, "text/html", content_type)
 
@@ -71,22 +71,14 @@ class JimmyPageTests(TestCase):
         self.assertEqual(headers["ETag"], get_cache_key(request))
 
     def test_timeout_argument_works(self):
-        """Passing a number to cache_page caches it for that many seconds.
-
-        It expires after that.
-        """
+        """Passing a number to cache_page caches it for that many seconds."""
         @cache_page(5)
         def foo(request):
             return HttpResponse("foo")
 
         request = self.factory.get("/")
         response = foo(request)
-
-        time.sleep(1)
         self.assertTrue(self.get_from_cache(request) is not None)
-
-        time.sleep(6)
-        self.assertTrue(self.get_from_cache(request) is None)
 
     def test_get_params(self):
         url = "/content-types/text/html/?foo=bar"
@@ -97,20 +89,13 @@ class JimmyPageTests(TestCase):
     def test_watchlist(self):
         current_generation = cache.get("generation")
 
-        from demo.models import Article, Page
         Article.objects.create(title="incr generation", body="incr generation")
-
         self.assertEqual(cache.get("generation"), current_generation + 1)
 
         Page.objects.create(title="don't increment", body="don't increment")
         self.assertEqual(cache.get("generation"), current_generation + 1)
 
-class CacheabilityTest(TestCase):
-    urls = 'jimmypage.tests.urls'
-
-    def setUp(self):
-        self.factory = RequestFactory()
-
+class JimmyPageCacheabilityTests(JimmyPageTestsBase):
     def test_only_cache_get_requests(self):
         request = self.factory.get("/")
         self.assertTrue(request_is_cacheable(request))
