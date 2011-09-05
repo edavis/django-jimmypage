@@ -97,9 +97,12 @@ class JimmyPageTests(TestCase):
     def test_watchlist(self):
         current_generation = cache.get("generation")
 
-        from demo.models import Article
+        from demo.models import Article, Page
         Article.objects.create(title="incr generation", body="incr generation")
 
+        self.assertEqual(cache.get("generation"), current_generation + 1)
+
+        Page.objects.create(title="don't increment", body="don't increment")
         self.assertEqual(cache.get("generation"), current_generation + 1)
 
 class CacheabilityTest(TestCase):
