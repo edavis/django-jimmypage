@@ -1,30 +1,73 @@
-Jimmy Page alpha 0.1
-====================
+django-jimmypage
+================
 
-Jimmy Page is a simple caching app for Django, inspired by `Johnny Cache
-<http://packages.python.org/johnny-cache/>`_, but for whole pages rather than
-querysets.  It is an automatic generation-based page cache.  
+Jimmy Page is a generational caching app for Django.
 
-If Johnny Cache (generational caching of querysets) is the first line of
-defense in caching, Jimmy Page is the last: it caches the output of views
-forever, but with conservative expiration on database writes.  Jimmy uses a
-global "generation" number as part of the cache key, which is incremented
-whenever any model is saved or deleted, expiring the whole page cache.  This
-technique is similar to that described by `Open Logic
-<http://assets.en.oreilly.com/1/event/27/Accelerate%20your%20Rails%20Site%20with%20Automatic%20Generation-based%20Action%20Caching%20Presentation%201.pdf>`_
-from the Rails community.
+*"There are only two hard things in Computer Science: cache
+invalidation and naming things."* - Phil Karlton
 
-This technique provides easy whole-page caching, with an assurance that no part
-of the site will ever contain stale content.  The conservative approach to
-expiration allows Jimmy to function in a drop-in manner, without any
-domain-specific knowledge of how data updates might affect the output of views.
-It will greatly speed up slowly updated sites, especially when used in
-combination with Johnny Cache and carefully designed, more aggressive caching
-for particularly intensive views.  This technique is not likely to be effective
-in sites that have a high ratio of database writes to reads.
+What is Generational Caching?
+-----------------------------
+
+So how do generational and "regular" caching differ?  The biggest
+difference is how they handle stale content.
+
+Regular caching is designed so that after *N* seconds, the cached
+content expires.  Then, once expired, the next request comes along and
+-- finding the cached content newly expired -- repopulates it with
+(potentially) fresher content.
+
+It's not hard to see the downsides to this method.  You're constantly
+trying to find a balance between setting that *N* too low (which gives
+you fresher content at the expense of hammering your database) and too
+high (which eases off your database but increases the chance of
+serving stale content).  But beyond that, what if the content hasn't
+changed since it was cached?  Why keep hitting a database looking for
+fresh content when there isn't anything fresher?
+
+**Wouldn't it just make more sense to keep serving the cached content
+until you have a reason not to?**
+
+That's where generational caching comes in.
+
+The central feature in generational caching is something called a
+"generation."  It's just a number -- stored in your cache -- that you
+increment whenever you want to invalidate items in your cache.
+
+The idea is to increment this generation number whenever you add,
+update, or delete a record in your database.
+
+When building your cache keys, you include this generation number in
+the key. As long as the generation number stays the same, the key will
+continue serve the same content.  But when you increment the
+generation -- say, after adding a database record -- all cache keys
+that include the generation number become transparently invalidated.
+Now all future requests will use this new generation number when
+generating their cache keys, TK.
+
+This technique gives you the best of both possible worlds: fresh
+content and low database loads.
+
+Example
+-------
+
+But let's say you have a newspaper website and whenever a new article
+is published, you want everything to update.
+
+This technique provides easy whole-page caching, with an assurance
+that no part of the site will ever contain stale content.  The
+conservative approach to expiration allows Jimmy to function in a
+drop-in manner, without any domain-specific knowledge of how data
+updates might affect the output of views.  It will greatly speed up
+slowly updated sites, especially when used in combination with Johnny
+Cache and carefully designed, more aggressive caching for particularly
+intensive views.  This technique is not likely to be effective in
+sites that have a high ratio of database writes to reads.
 
 Installation
 ------------
+
+set up a watchlist (install?)
 
 This is the first, as yet largely untested alpha release.  Some notes:
 
