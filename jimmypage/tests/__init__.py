@@ -158,3 +158,19 @@ class JimmyPageCacheabilityTests(JimmyPageTestsBase):
 
         self.assertNotEqual(get_cache_key(req), get_cache_key(req2))
         self.assertNotEqual(get_cache_key(req), get_cache_key(req3))
+
+class JimmyPageBackendTests(JimmyPageTestsBase):
+    def test_backend_accepts_zero(self):
+        from jimmypage.backends import MemcachedCache
+
+        backend = MemcachedCache("127.0.0.1:11311", {"timeout": 0})
+        self.assertEqual(backend.default_timeout, 0)
+
+        backend = MemcachedCache("127.0.0.1:11311", {"timeout": None})
+        self.assertEqual(backend.default_timeout, 300)
+
+        backend = MemcachedCache("127.0.0.1:11311", {"timeout": "abc"})
+        self.assertEqual(backend.default_timeout, 300)
+
+        backend = MemcachedCache("127.0.0.1:11311", {"timeout": 60})
+        self.assertEqual(backend.default_timeout, 60)
